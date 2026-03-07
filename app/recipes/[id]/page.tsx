@@ -8,8 +8,11 @@ const BUCKET = "recipe-images";
 type RecipeRow = {
   id: number;
   title: string;
-  text: string;
-  pages: string[]; // storage paths or filenames
+  instructions: string;
+  servings: { amount: number; type: string } | null;
+  ingredients: { item: string; quantity: number | null; unit: string | null }[] | null;
+  source_pages: number[];
+  category: string;
 };
 
 export default async function RecipePage({
@@ -27,7 +30,7 @@ export default async function RecipePage({
 
   const { data: recipe, error } = await supabase
     .from("recipes")
-    .select("id,title,text,pages")
+    .select("id,title,instructions,servings,ingredients,source_pages, category")
     .eq("id", recipeId)
     .single<RecipeRow>();
 
@@ -35,9 +38,12 @@ export default async function RecipePage({
     return <>error</>
   }
 
-const paths = Array.isArray(recipe.pages)
-  ? recipe.pages.map((item) => `page_${item}.jpeg`)
+  const { data: { user } } = await supabase.auth.getUser();
+
+const paths = Array.isArray(recipe.source_pages)
+  ? recipe.source_pages.map((item) => `page_${item.toString()}.jpeg`)
   : [];
+
 
   const imageUrls = paths.map((path) => {
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
@@ -45,7 +51,5 @@ const paths = Array.isArray(recipe.pages)
   });
 
 
-  
-
-  return <RecipeClient recipe={recipe} imageUrls={imageUrls} />;
+  return <RecipeClient recipe={recipe} imageUrls={imageUrls} isLoggedIn={user !== null} />;
 }

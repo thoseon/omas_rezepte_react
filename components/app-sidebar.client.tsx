@@ -23,7 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import type { RecipeNavItem } from "./app-sidebar.server";
 
-type RecipeHit = { id: number; title: string };
+type RecipeHit = { id: number; title: string, category:string };
 
 function useDebounced<T>(value: T, ms = 250) {
   const [v, setV] = React.useState(value);
@@ -73,7 +73,8 @@ export function AppSidebarClient({ recipes }: { recipes: RecipeNavItem[] }) {
     return () => { controller.abort(); };
   }, [dq]);
 
-  const list: RecipeHit[] = remote ?? recipes;
+  const recipeList: RecipeHit[] = remote ?? recipes;
+  const recipesByCategory = Object.groupBy(recipeList, ({category}) => category);
 
   return (
     <>
@@ -87,53 +88,51 @@ export function AppSidebarClient({ recipes }: { recipes: RecipeNavItem[] }) {
         />
       </div>
 
-      <SidebarContent>
-        <Collapsible defaultOpen className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger>
-                ALLE
-                <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {loading && (
-                    <div className="px-2 py-2 space-y-2">
-                      <Skeleton className="h-6 w-full" />
-                      <Skeleton className="h-6 w-[85%]" />
-                      <Skeleton className="h-6 w-[70%]" />
-                    </div>
-                  )}
-
-                  {!loading &&
-                    list.map((r) => (
-                      <SidebarMenuItem key={r.id}>
-                        <SidebarMenuButton asChild>
-                          <Link href={`/recipes/${r.id.toString()}`}>
-                            <span>{r.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-
-                  {!loading && err && (
-                    <div className="px-2 py-3 text-sm text-destructive">{err}</div>
-                  )}
-
-                  {!loading && !err && dq.trim() && (remote?.length ?? 0) === 0 && (
-                    <div className="px-2 py-3 text-sm text-muted-foreground">
-                      Keine Treffer
-                    </div>
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-      </SidebarContent>
+     <SidebarContent>
+{Object.entries(recipesByCategory).map(([category, recipes = []]) => (
+    <Collapsible key={category} defaultOpen={false} className="group/collapsible">
+      <SidebarGroup>
+        <SidebarGroupLabel asChild>
+          <CollapsibleTrigger>
+            {category}
+            <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+          </CollapsibleTrigger>
+        </SidebarGroupLabel>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {loading && (
+                <div className="px-2 py-2 space-y-2">
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-[85%]" />
+                  <Skeleton className="h-6 w-[70%]" />
+                </div>
+              )}
+              {!loading &&
+                recipes.map((r) => (
+                  <SidebarMenuItem key={r.id}>
+                    <SidebarMenuButton asChild>
+                      <Link href={`/recipes/${r.id.toString()}`}>
+                        <span className="truncate">{r.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              {!loading && err && (
+                <div className="px-2 py-3 text-sm text-destructive">{err}</div>
+              )}
+              {!loading && !err && dq.trim() && (remote?.length ?? 0) === 0 && (
+                <div className="px-2 py-3 text-sm text-muted-foreground">
+                  Keine Treffer
+                </div>
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  ))}
+</SidebarContent>
     </>
   );
 }

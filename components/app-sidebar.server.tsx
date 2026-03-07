@@ -1,12 +1,15 @@
-import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
+import Link from "next/link";
+
+import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
+
 import { AppSidebarClient } from "./app-sidebar.client";
 
 export type RecipeNavItem = {
   id: number;
   title: string;
+  category: string;
 };
 
 export async function AppSidebar() {
@@ -14,16 +17,17 @@ export async function AppSidebar() {
 
   const { data } = await supabase
     .from("recipes")
-    .select("id, title")
+    .select("id, title, category")
     .order("title", { ascending: true });
 
   const recipes: RecipeNavItem[] = (data ?? []).map((r) => ({
-    id: r.id,
-    title: r.title,
+    id: r.id as number,
+    title: r.title as string,
+    category: r.category as string,
   }));
 
   return (
-    <Sidebar variant="inset" collapsible="none">
+    <Sidebar variant="sidebar" collapsible="offcanvas">
       <SidebarHeader className="space-y-3">
         <Link
           href="/"
@@ -40,8 +44,6 @@ export async function AppSidebar() {
       </SidebarHeader>
 
       <AppSidebarClient recipes={recipes} />
-
-      <SidebarFooter />
     </Sidebar>
   );
 }
