@@ -1,7 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +33,7 @@ export default function RecipeClient({
   imageUrls: { path: string; url: string }[];
   isLoggedIn: boolean;
 }) {
-  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(recipe.title);
   const [instructions, setInstructions] = useState(recipe.instructions);
@@ -94,53 +97,58 @@ export default function RecipeClient({
     setIngredients((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function prevImage() {
-    setFullscreenIndex((i) => (i !== null && i > 0 ? i - 1 : i));
-  }
-
-  function nextImage() {
-    setFullscreenIndex((i) =>
-      i !== null && i < imageUrls.length - 1 ? i + 1 : i
-    );
-  }
-
-  useEffect(() => {
-    if (fullscreenIndex === null) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setFullscreenIndex(null);
-      if (e.key === "ArrowLeft") setFullscreenIndex((i) => (i !== null && i > 0 ? i - 1 : i));
-      if (e.key === "ArrowRight") setFullscreenIndex((i) => (i !== null && i < imageUrls.length - 1 ? i + 1 : i));
-    }
-    window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("keydown", onKey); };
-  }, [fullscreenIndex, imageUrls.length]);
-
-  const fullscreenUrl =
-    fullscreenIndex !== null ? (imageUrls[fullscreenIndex]?.url ?? null) : null;
+  const slides = imageUrls.map((img) => ({ src: img.url }));
 
   return (
     <Suspense fallback={<div className="p-6">Lade Rezept…</div>}>
       <div className="relative min-h-screen w-full">
 
-          <div className="absolute inset-0">
-            {backgroundUrl ? (
-              <Image
-                src={backgroundUrl}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover"
-              />
-            ) : null}
-          </div>
-          <div className="absolute inset-0 bg-white/65" />
-          <div className="absolute inset-0 backdrop-blur-[1px]" />
-
+        <div className="absolute inset-0">
+          {backgroundUrl ? (
+            <Image
+              src={backgroundUrl}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          ) : null}
+        </div>
+        <div className="absolute inset-0 bg-white/65" />
+        <div className="absolute inset-0 backdrop-blur-[1px]" />
 
         {/* CONTENT ABOVE BACKGROUND */}
         <main className="relative min-h-screen px-6 pt-6 pb-10 md:px-10">
           <div className="mx-auto w-full max-w-5xl space-y-6">
+
+            {/* ORIGINAL PAGES GALLERY — shown above recipe */}
+            {imageUrls.length > 0 && (
+              <Card className="rounded-2xl border bg-background/85 backdrop-blur-md">
+                <CardContent className="pt-4">
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {imageUrls.map((img, i) => (
+                      <button
+                        key={img.path}
+                        type="button"
+                        aria-label={`Seite ${String(i + 1)} vergrößern`}
+                        className="relative h-36 w-28 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border bg-muted shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2"
+                        onClick={() => { setLightboxIndex(i); }}
+                      >
+                        <Image
+                          src={img.url}
+                          alt={`Seite ${String(i + 1)}`}
+                          fill
+                          sizes="112px"
+                          className="object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="rounded-2xl border bg-background/85 backdrop-blur-md">
               <CardHeader className="pb-4">
                 <div className="flex items-start gap-3">
@@ -243,13 +251,13 @@ export default function RecipeClient({
                     <p className="text-sm font-medium text-muted-foreground">Zutaten</p>
                     <ul className="space-y-1">
                       {recipe.ingredients.map((ing, i) => (
-                        <li key={i} className="flex gap-2 text-base">
-                          {ing.quantity !== null && (
-                            <span className="w-10 text-right tabular-nums">{ing.quantity}</span>
-                          )}
-                          {ing.unit && (
-                            <span className="w-14 text-muted-foreground">{ing.unit}</span>
-                          )}
+                        <li key={i} className="grid grid-cols-[2.5rem_4rem_1fr] gap-x-2 items-baseline text-base">
+                          <span className="text-right tabular-nums text-sm">
+                            {ing.quantity ?? ""}
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            {ing.unit ?? ""}
+                          </span>
                           <span>{ing.item}</span>
                         </li>
                       ))}
@@ -291,108 +299,17 @@ export default function RecipeClient({
                 )}
               </CardContent>
             </Card>
-
-            {/* ORIGINAL PAGES GALLERY */}
-            {imageUrls.length > 0 && (
-              <Card className="rounded-2xl border bg-background/85 backdrop-blur-md">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium text-muted-foreground">
-                    Originalseiten ({imageUrls.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {imageUrls.map((img, i) => (
-                      <button
-                        key={img.path}
-                        type="button"
-                        aria-label={`Seite ${String(i + 1)} vergrößern`}
-                        className="relative h-36 w-28 cursor-zoom-in overflow-hidden rounded-lg border bg-muted shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2"
-                        onClick={() => { setFullscreenIndex(i); }}
-                      >
-                        <Image
-                          src={img.url}
-                          alt={`Seite ${String(i + 1)}`}
-                          fill
-                          sizes="112px"
-                          className="object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 py-0.5 text-center text-xs text-white">
-                          {i + 1}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </main>
 
-        {/* FULLSCREEN OVERLAY */}
-        {fullscreenUrl !== null && fullscreenIndex !== null ? (
-          <div
-            className="fixed inset-0 z-50 flex flex-col bg-black/90"
-            onClick={() => { setFullscreenIndex(null); }}
-          >
-            {/* TOP BAR */}
-            <div
-              className="flex shrink-0 items-center justify-between px-4 py-3"
-              onClick={(e) => { e.stopPropagation(); }}
-            >
-              <span className="text-sm text-white/70">
-                {fullscreenIndex + 1} / {imageUrls.length}
-              </span>
-              <button
-                type="button"
-                aria-label="Schließen"
-                className="rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
-                onClick={() => { setFullscreenIndex(null); }}
-              >
-                Schließen
-              </button>
-            </div>
-
-            {/* IMAGE */}
-            <div
-              className="relative min-h-0 flex-1"
-              onClick={(e) => { e.stopPropagation(); }}
-            >
-              <Image
-                src={fullscreenUrl}
-                alt={`Seite ${String(fullscreenIndex + 1)}`}
-                fill
-                sizes="100vw"
-                className="object-contain"
-              />
-            </div>
-
-            {/* PREV / NEXT */}
-            <div
-              className="flex shrink-0 items-center justify-center gap-4 py-4"
-              onClick={(e) => { e.stopPropagation(); }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={fullscreenIndex === 0}
-                onClick={prevImage}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-30"
-              >
-                ← Zurück
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={fullscreenIndex === imageUrls.length - 1}
-                onClick={nextImage}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-30"
-              >
-                Weiter →
-              </Button>
-            </div>
-          </div>
-        ) : null}
+        {/* LIGHTBOX */}
+        <Lightbox
+          open={lightboxIndex >= 0}
+          index={lightboxIndex}
+          close={() => { setLightboxIndex(-1); }}
+          slides={slides}
+          plugins={[Zoom]}
+        />
       </div>
     </Suspense>
   );
