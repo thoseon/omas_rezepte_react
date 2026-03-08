@@ -2,6 +2,7 @@
 
 import { BookOpen, ChefHat, ShoppingBasket, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense, useState } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -185,9 +186,12 @@ export default function RecipeClient({
                   ) : (
                     <div className="flex-1 text-center">
                       {category && (
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        <Link
+                          href={`/categories/${encodeURIComponent(category)}`}
+                          className="mb-2 inline-block text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                        >
                           {category}
-                        </p>
+                        </Link>
                       )}
                       <CardTitle className="text-4xl font-bold tracking-tight leading-tight">
                         {title}
