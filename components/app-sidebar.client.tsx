@@ -90,7 +90,7 @@ export function AppSidebarClient({ recipes }: { recipes: RecipeNavItem[] }) {
 
      <SidebarContent>
 {Object.entries(recipesByCategory).map(([category, recipes = []]) => (
-    <Collapsible key={category} defaultOpen={false} className="group/collapsible">
+    <Collapsible key={category} defaultOpen={remote !== null} className="group/collapsible">
       <SidebarGroup>
         <SidebarGroupLabel asChild>
           <CollapsibleTrigger>

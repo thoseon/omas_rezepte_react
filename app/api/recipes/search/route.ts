@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(req: Request) {
@@ -11,12 +12,9 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from("recipes")
-    .select("id,title")
-    .textSearch("search", q, {
-      type: "websearch",
-      config: "simple",
-    })
-    .limit(50);
+    .select("id,title,category")
+    .textSearch("search", q, { type: "websearch", config: "german" })
+    .limit(200);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

@@ -1,14 +1,17 @@
 "use client";
 
+import { BookOpen, ChefHat, ShoppingBasket, Users } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useState } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,6 +25,7 @@ type RecipeRow = {
   servings: Servings | null;
   ingredients: Ingredient[] | null;
   source_pages: number[];
+  category: string;
 };
 
 export default function RecipeClient({
@@ -36,6 +40,7 @@ export default function RecipeClient({
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(recipe.title);
+  const [category, setCategory] = useState(recipe.category);
   const [instructions, setInstructions] = useState(recipe.instructions);
   const [servings, setServings] = useState<Servings>(
     recipe.servings ?? { amount: 0, type: "" }
@@ -54,7 +59,7 @@ export default function RecipeClient({
     const supabase = createClient();
     const { data, error } = await supabase
       .from("recipes")
-      .update({ title, instructions, servings, ingredients })
+      .update({ title, category, instructions, servings, ingredients })
       .eq("id", recipe.id)
       .select();
     setSaving(false);
@@ -69,6 +74,7 @@ export default function RecipeClient({
 
   function handleCancel() {
     setTitle(recipe.title);
+    setCategory(recipe.category);
     setInstructions(recipe.instructions);
     setServings(recipe.servings ?? { amount: 0, type: "" });
     setIngredients(recipe.ingredients ?? []);
@@ -124,24 +130,33 @@ export default function RecipeClient({
 
             {/* ORIGINAL PAGES GALLERY — shown above recipe */}
             {imageUrls.length > 0 && (
-              <Card className="rounded-2xl border bg-background/85 backdrop-blur-md">
-                <CardContent className="pt-4">
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+              <Card className="rounded-2xl border border-border/70 bg-background/80 backdrop-blur-md shadow-sm">
+                <CardHeader className="pb-2 pt-4 px-5">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-widest">Originalseiten</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 px-5 pb-4">
+                  <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {imageUrls.map((img, i) => (
                       <button
                         key={img.path}
                         type="button"
                         aria-label={`Seite ${String(i + 1)} vergrößern`}
-                        className="relative h-36 w-28 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border bg-muted shadow-sm transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2"
+                        className="relative h-40 w-[6.5rem] shrink-0 cursor-zoom-in overflow-hidden rounded-xl border-2 border-border/60 bg-muted shadow-md transition-all duration-200 hover:scale-[1.04] hover:shadow-lg hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={() => { setLightboxIndex(i); }}
                       >
                         <Image
                           src={img.url}
                           alt={`Seite ${String(i + 1)}`}
                           fill
-                          sizes="112px"
+                          sizes="104px"
                           className="object-cover"
                         />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent py-1 text-center">
+                          <span className="text-[10px] font-medium text-white/90">{i + 1}</span>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -149,24 +164,44 @@ export default function RecipeClient({
               </Card>
             )}
 
-            <Card className="rounded-2xl border bg-background/85 backdrop-blur-md">
-              <CardHeader className="pb-4">
+            <Card className="rounded-2xl border border-border/70 bg-background/90 backdrop-blur-md shadow-md">
+              <CardHeader className="pb-3 pt-6 px-8">
                 <div className="flex items-start gap-3">
                   {editing ? (
-                    <Input
-                      value={title}
-                      onChange={(e) => { setTitle(e.target.value); }}
-                      className="text-2xl font-semibold flex-1"
-                    />
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={title}
+                        onChange={(e) => { setTitle(e.target.value); }}
+                        className="text-2xl font-semibold"
+                        placeholder="Titel"
+                      />
+                      <Input
+                        value={category}
+                        onChange={(e) => { setCategory(e.target.value); }}
+                        placeholder="Kategorie"
+                        className="text-sm"
+                      />
+                    </div>
                   ) : (
-                    <CardTitle className="text-4xl font-semibold text-center flex-1">
-                      {title}
-                    </CardTitle>
+                    <div className="flex-1 text-center">
+                      {category && (
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          {category}
+                        </p>
+                      )}
+                      <CardTitle className="text-4xl font-bold tracking-tight leading-tight">
+                        {title}
+                      </CardTitle>
+                      <div className="mt-5 flex justify-center">
+                        <Separator className="w-16" />
+                      </div>
+                    </div>
                   )}
                   {isLoggedIn && !editing && (
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
                       onClick={() => { setEditing(true); }}
                     >
                       Bearbeiten
@@ -175,7 +210,7 @@ export default function RecipeClient({
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-0 space-y-6">
+              <CardContent className="pt-4 pb-8 px-8 space-y-8">
                 {/* SERVINGS */}
                 {editing ? (
                   <div className="space-y-2">
@@ -200,9 +235,14 @@ export default function RecipeClient({
                     </div>
                   </div>
                 ) : recipe.servings ? (
-                  <div className="flex items-center gap-2 text-base">
-                    <span className="font-medium">Portionen:</span>
-                    <span>{recipe.servings.amount} {recipe.servings.type}</span>
+                  <div className="flex justify-center">
+                    <Badge
+                      variant="secondary"
+                      className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      {recipe.servings.amount} {recipe.servings.type}
+                    </Badge>
                   </div>
                 ) : null}
 
@@ -247,18 +287,24 @@ export default function RecipeClient({
                     </Button>
                   </div>
                 ) : recipe.ingredients && recipe.ingredients.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Zutaten</p>
-                    <ul className="space-y-1">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBasket className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                        Zutaten
+                      </h2>
+                      <Separator className="flex-1" />
+                    </div>
+                    <ul className="divide-y divide-border/50">
                       {recipe.ingredients.map((ing, i) => (
-                        <li key={i} className="grid grid-cols-[2.5rem_4rem_1fr] gap-x-2 items-baseline text-base">
-                          <span className="text-right tabular-nums text-sm">
+                        <li key={i} className="grid grid-cols-[3rem_5rem_1fr] gap-x-3 items-baseline py-2.5 first:pt-0 last:pb-0 text-base">
+                          <span className="text-right tabular-nums text-sm font-medium text-foreground/80">
                             {ing.quantity ?? ""}
                           </span>
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-sm text-muted-foreground">
                             {ing.unit ?? ""}
                           </span>
-                          <span>{ing.item}</span>
+                          <span className="text-base text-foreground">{ing.item}</span>
                         </li>
                       ))}
                     </ul>
@@ -290,10 +336,16 @@ export default function RecipeClient({
                     </div>
                   </>
                 ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Zubereitung</p>
-                    <div className="rounded-xl border bg-muted/30 p-6 text-base leading-relaxed">
-                      <pre className="whitespace-pre-wrap font-sans">{instructions}</pre>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ChefHat className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                        Zubereitung
+                      </h2>
+                      <Separator className="flex-1" />
+                    </div>
+                    <div className="rounded-xl bg-muted/20 border border-border/40 px-6 py-5">
+                      <pre className="whitespace-pre-wrap font-sans text-base leading-[1.85] tracking-[0.01em] text-foreground/90">{instructions}</pre>
                     </div>
                   </div>
                 )}
